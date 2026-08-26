@@ -43,7 +43,20 @@ services:
     volumes:
       - backend_logs:/logs
 
-  # 🟢 Adminer (Database GUI)
+  # 🟢 React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: call-recording-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - call-recording-network
+
+  # 🟡 Adminer (Database GUI)
   adminer:
     image: adminer:latest
     container_name: call-recording-adminer
