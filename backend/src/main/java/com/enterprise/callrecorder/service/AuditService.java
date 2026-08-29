@@ -21,7 +21,7 @@ public class AuditService {
      * Enregistrer une action
      */
     public void logAction(Long recordingId, String action, String actorId, String details) {
-        AuditLog log = AuditLog.builder()
+        AuditLog auditLog = AuditLog.builder()
             .recordingId(recordingId)
             .action(action)
             .actorId(actorId)
@@ -29,7 +29,8 @@ public class AuditService {
             .createdAt(LocalDateTime.now())
             .build();
 
-        auditRepository.save(log);
+        auditRepository.save(auditLog);
+
         log.info("Audit log: {} - {} - {}", recordingId, action, details);
     }
 }

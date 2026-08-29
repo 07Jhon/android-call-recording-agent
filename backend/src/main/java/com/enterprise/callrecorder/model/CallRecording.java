@@ -5,18 +5,22 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 /**
- * 🔴 CRITICAL: JPA Entity for Call Recordings
+ * JPA Entity for Call Recordings
  */
 @Entity
-@Table(name = "call_recordings", indexes = {
-    @Index(name = "idx_device_id", columnList = "device_id"),
-    @Index(name = "idx_phone_number", columnList = "phone_number"),
-    @Index(name = "idx_status", columnList = "status"),
-    @Index(name = "idx_created_at", columnList = "created_at")
-})
+@Table(
+    name = "call_recordings",
+    indexes = {
+        @Index(name = "idx_device_id", columnList = "device_id"),
+        @Index(name = "idx_phone_number", columnList = "phone_number"),
+        @Index(name = "idx_status", columnList = "status"),
+        @Index(name = "idx_created_at", columnList = "created_at")
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -36,8 +40,8 @@ public class CallRecording {
     @Column(nullable = false, length = 20)
     private String phoneNumber;
 
-    @Column(nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private CallType callType;
 
     @Column(nullable = false)
@@ -57,11 +61,13 @@ public class CallRecording {
     private String storageKey;
 
     // Status
-    @Column(nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    @Builder.Default
     private CallStatus status = CallStatus.RECORDING;
 
     @Column(columnDefinition = "integer default 0")
+    @Builder.Default
     private Integer uploadAttempts = 0;
 
     @Column(columnDefinition = "TEXT")
@@ -69,17 +75,10 @@ public class CallRecording {
 
     // Audit
     @Column(nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime uploadedAt;
 
     private LocalDateTime deletedAt;
-}
-
-enum class CallType {
-    INCOMING, OUTGOING, MISSED, REJECTED
-}
-
-enum class CallStatus {
-    RECORDING, PROCESSING, PENDING_UPLOAD, UPLOADING, UPLOADED, UPLOAD_FAILED, DELETED
 }

@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     action VARCHAR(50) NOT NULL,
     actor_id VARCHAR(255),
     actor_role VARCHAR(50),
-    details JSONB,
+    details TEXT,
     ip_address VARCHAR(45),
     user_agent TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

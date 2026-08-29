@@ -57,7 +57,7 @@ public class CallRecordingService {
      */
     public Page<CallRecording> getRecordingsByPhoneNumber(String phoneNumber, Pageable pageable) {
         return recordingRepository.findByPhoneNumber(phoneNumber, pageable);
-    
+    }
     /**
      * Récupérer les enregistrements en attente d'upload
      */
