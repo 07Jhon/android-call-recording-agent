@@ -16,7 +16,16 @@ android {
         versionCode 1
         versionName "1.0.0"
         
+        // 10.0.2.2 = alias spécial pour "localhost de la machine hôte" depuis
+        // un émulateur Android. Pour un téléphone physique, remplacer par
+        // l'IP locale de la machine qui fait tourner le backend (ex: 192.168.1.X).
+        buildConfigField "String", "BACKEND_BASE_URL", "\"http://10.0.2.2:8080/\""
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        buildConfig true
     }
     
     buildTypes {

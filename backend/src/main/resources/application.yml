@@ -27,6 +27,11 @@ server:
   servlet:
     context-path: /
 
+app:
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:changeme}
+
 logging:
   level:
     root: INFO

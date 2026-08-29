@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS registered_devices (
     android_version INT,
     manufacturer VARCHAR(255),
     model VARCHAR(255),
+    api_token VARCHAR(255) UNIQUE,
     is_recording_supported BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
     last_seen_at TIMESTAMP,
@@ -102,6 +103,7 @@ CREATE TABLE IF NOT EXISTS registered_devices (
 
 CREATE INDEX idx_registered_devices_device_id ON registered_devices(device_id);
 CREATE INDEX idx_last_seen_at ON registered_devices(last_seen_at DESC);
+CREATE INDEX idx_api_token ON registered_devices(api_token);
 
 -- 🟡 Upload Queue Table (pour retry automatique)
 

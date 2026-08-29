@@ -17,6 +17,7 @@ import android.telephony.TelephonyManager
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.enterprise.callrecorder.data.CallRecordingDatabase
+import com.enterprise.callrecorder.auth.DeviceAuthManager
 import com.enterprise.callrecorder.model.CallRecording
 import com.enterprise.callrecorder.model.CallStatus
 import com.enterprise.callrecorder.model.CallType
@@ -39,6 +40,9 @@ class CallMonitorService : LifecycleService() {
     
     @Inject
     lateinit var recordingManager: CallRecordingManager
+
+    @Inject
+    lateinit var deviceAuthManager: DeviceAuthManager
     
     private lateinit var telephonyManager: TelephonyManager
     private var mediaRecorder: MediaRecorder? = null
@@ -81,6 +85,11 @@ class CallMonitorService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         startForegroundWithNotification()
+
+        lifecycleScope.launch {
+            deviceAuthManager.ensureRegistered()
+        }
+
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -279,10 +288,7 @@ class CallMonitorService : LifecycleService() {
     /**
      * Retourne l'ID de l'appareil
      */
-    private fun getDeviceId(): String {
-        // À implémenter selon la configuration
-        return android.os.Build.DEVICE
-    }
+    private fun getDeviceId(): String = deviceAuthManager.deviceId
 
     /**
      * Met à jour le statut d'un enregistrement
