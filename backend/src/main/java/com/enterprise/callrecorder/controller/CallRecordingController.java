@@ -2,6 +2,7 @@ package com.enterprise.callrecorder.controller;
 
 import com.enterprise.callrecorder.model.CallRecording;
 import com.enterprise.callrecorder.model.CallStatus;
+import com.enterprise.callrecorder.model.CallType;
 import com.enterprise.callrecorder.service.CallRecordingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,20 +47,38 @@ public class CallRecordingController {
         try {
             log.info("Upload request from device: {}, phone: {}", deviceId, phoneNumber);
 
-            // TODO: Implémenter le stockage du fichier
-            // TODO: Créer l'enregistrement en BDD
+            CallRecording saved = recordingService.processUpload(
+                deviceId, phoneNumber, CallType.valueOf(callType), duration, fileSize, file);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("storageKey", "storage-key-123");
+            response.put("recordingId", saved.getId());
+            response.put("storageKey", saved.getStorageKey());
             response.put("message", "Recording uploaded successfully");
 
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("success", false, "message", "Invalid callType: " + callType));
         } catch (Exception e) {
             log.error("Upload failed", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("success", false, "message", e.getMessage()));
         }
+    }
+
+    /**
+     * Get all recordings (paginated)
+     * GET /api/v1/call-recordings
+     */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Page<CallRecording>> getAllRecordings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(recordingService.getAllRecordings(pageable));
     }
 
     /**
@@ -106,6 +125,34 @@ public class CallRecordingController {
         Page<CallRecording> recordings = recordingService.getRecordingsByPhoneNumber(phoneNumber, pageable);
         
         return ResponseEntity.ok(recordings);
+    }
+
+    /**
+     * Download recording audio file
+     * GET /api/v1/call-recordings/{id}/download
+     */
+    @GetMapping("/{id}/download")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<?> downloadRecording(@PathVariable Long id) {
+        return recordingService.getRecordingById(id)
+            .map(recording -> {
+                if (recording.getStorageKey() == null) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("message", "No file available for this recording"));
+                }
+                try {
+                    byte[] fileContent = recordingService.getFileContent(recording.getStorageKey());
+                    return ResponseEntity.ok()
+                        .header("Content-Disposition", "attachment; filename=\"" + recording.getFileName() + "\"")
+                        .header("Content-Type", "application/octet-stream")
+                        .body(fileContent);
+                } catch (Exception e) {
+                    log.error("Download failed for recording {}", id, e);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "Failed to read file: " + e.getMessage()));
+                }
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 
     /**

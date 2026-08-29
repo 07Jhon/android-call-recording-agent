@@ -30,7 +30,6 @@ public class AuditService {
             .build();
 
         auditRepository.save(auditLog);
-
         log.info("Audit log: {} - {} - {}", recordingId, action, details);
     }
 }

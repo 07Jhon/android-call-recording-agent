@@ -1,13 +1,20 @@
 package com.enterprise.callrecorder.service
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.IBinder
 import android.telephony.PhoneStateListener
+import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
+import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.enterprise.callrecorder.data.CallRecordingDatabase
 import com.enterprise.callrecorder.model.CallRecording
@@ -25,7 +32,7 @@ import javax.inject.Inject
  * Détecte et enregistre les appels téléphoniques
  */
 @AndroidEntryPoint
-class CallMonitorService : Service() {
+class CallMonitorService : LifecycleService() {
 
     @Inject
     lateinit var database: CallRecordingDatabase
@@ -58,14 +65,28 @@ class CallMonitorService : Service() {
         }
     }
 
+    /**
+     * Callback moderne (API 31+) remplaçant PhoneStateListener, qui est déprécié.
+     */
+    private val callStateCallback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
+        override fun onCallStateChanged(state: Int) {
+            when (state) {
+                TelephonyManager.CALL_STATE_RINGING -> handleIncomingCall("Unknown")
+                TelephonyManager.CALL_STATE_OFFHOOK -> handleCallAccepted()
+                TelephonyManager.CALL_STATE_IDLE -> handleCallEnded()
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
+        startForegroundWithNotification()
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             telephonyManager.registerTelephonyCallback(
                 mainExecutor,
-                TelephonyCallback()
+                callStateCallback
             )
         } else {
             @Suppress("DEPRECATION")
@@ -74,10 +95,50 @@ class CallMonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         return START_STICKY
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    /**
+     * Obligatoire depuis Android 8 (API 26) : un service longue durée doit
+     * passer en foreground avec une notification visible sous 5 secondes,
+     * sinon le système le tue (ForegroundServiceDidNotStartInTimeException
+     * sur API 31+).
+     */
+    private fun startForegroundWithNotification() {
+        val channelId = "call_recording_channel"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Enregistrement d'appels",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+
+        val notification: Notification = Notification.Builder(this, channelId)
+            .setContentTitle("Agent d'enregistrement actif")
+            .setContentText("Surveillance des appels en cours")
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setOngoing(true)
+            .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                1,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            )
+        } else {
+            startForeground(1, notification)
+        }
+    }
+
+    override fun onBind(intent: Intent): IBinder {
+        return super.onBind(intent)
+    }
 
     /**
      * Gère la détection d'un appel entrant
@@ -236,7 +297,9 @@ class CallMonitorService : Service() {
         super.onDestroy()
         stopAudioRecording()
         
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            telephonyManager.unregisterTelephonyCallback(callStateCallback)
+        } else {
             @Suppress("DEPRECATION")
             telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE)
         }

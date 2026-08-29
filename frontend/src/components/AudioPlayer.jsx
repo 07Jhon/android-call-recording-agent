@@ -7,11 +7,7 @@ function AudioPlayer({ recordingId, fileName, onDownload }) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
-  const [playbackError, setPlaybackError] = useState(false)
   const audioRef = React.useRef(null)
-
-  // Served through the same /api path nginx (or the Vite dev proxy) forwards to the backend.
-  const audioSrc = `/api/v1/call-recordings/${recordingId}/download`
 
   const handlePlayPause = () => {
     if (audioRef.current) {
@@ -55,17 +51,10 @@ function AudioPlayer({ recordingId, fileName, onDownload }) {
     <div className="audio-player">
       <audio
         ref={audioRef}
-        src={audioSrc}
-        preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
-        onError={() => setPlaybackError(true)}
       />
-
-      {playbackError && (
-        <p className="player-error">Lecture impossible pour le moment. Le fichier reste disponible au téléchargement.</p>
-      )}
 
       <div className="player-controls">
         <button className="play-btn" onClick={handlePlayPause}>

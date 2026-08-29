@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.work.*
 import com.enterprise.callrecorder.data.CallRecordingDatabase
@@ -17,7 +18,7 @@ import javax.inject.Inject
  * 🔴 Service pour l'upload automatique des enregistrements
  */
 @AndroidEntryPoint
-class RecordingUploadService : Service() {
+class RecordingUploadService : LifecycleService() {
 
     @Inject
     lateinit var database: CallRecordingDatabase
@@ -31,13 +32,16 @@ class RecordingUploadService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         lifecycleScope.launch {
             uploadPendingRecordings()
         }
         return START_STICKY
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent): IBinder {
+        return super.onBind(intent)
+    }
 
     /**
      * Upload les enregistrements en attente

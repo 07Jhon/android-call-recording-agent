@@ -39,6 +39,38 @@ public class CallRecordingService {
     }
 
     /**
+     * Traiter un upload complet : sauvegarder le fichier puis créer l'enregistrement en BDD
+     */
+    public CallRecording processUpload(String deviceId, String phoneNumber, CallType callType,
+                                        Long duration, Long fileSize, org.springframework.web.multipart.MultipartFile file) throws Exception {
+        String fileName = deviceId + "-" + System.currentTimeMillis() + "-" + file.getOriginalFilename();
+        String storageKey = storageService.saveFile(file.getBytes(), fileName);
+
+        CallRecording recording = CallRecording.builder()
+            .deviceId(deviceId)
+            .phoneNumber(phoneNumber)
+            .callType(callType)
+            .startedAt(System.currentTimeMillis() - (duration != null ? duration * 1000 : 0))
+            .endedAt(System.currentTimeMillis())
+            .duration(duration)
+            .fileName(fileName)
+            .fileSize(fileSize)
+            .storageKey(storageKey)
+            .status(CallStatus.UPLOADED)
+            .uploadedAt(LocalDateTime.now())
+            .build();
+
+        return createRecording(recording);
+    }
+
+    /**
+     * Récupérer tous les enregistrements (paginés)
+     */
+    public Page<CallRecording> getAllRecordings(Pageable pageable) {
+        return recordingRepository.findAll(pageable);
+    }
+
+    /**
      * Récupérer un enregistrement par ID
      */
     public Optional<CallRecording> getRecordingById(Long id) {
@@ -58,6 +90,7 @@ public class CallRecordingService {
     public Page<CallRecording> getRecordingsByPhoneNumber(String phoneNumber, Pageable pageable) {
         return recordingRepository.findByPhoneNumber(phoneNumber, pageable);
     }
+
     /**
      * Récupérer les enregistrements en attente d'upload
      */
@@ -135,6 +168,13 @@ public class CallRecordingService {
         auditService.logAction(id, "DELETED", null, "Recording deleted");
         
         return recordingRepository.save(recording);
+    }
+
+    /**
+     * Lire le contenu binaire d'un fichier stocké
+     */
+    public byte[] getFileContent(String storageKey) throws Exception {
+        return storageService.getFile(storageKey);
     }
 
     /**

@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     action VARCHAR(50) NOT NULL,
     actor_id VARCHAR(255),
     actor_role VARCHAR(50),
-    details TEXT,
+    details JSONB,
     ip_address VARCHAR(45),
     user_agent TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS registered_devices (
     registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_device_id ON registered_devices(device_id);
+CREATE INDEX idx_registered_devices_device_id ON registered_devices(device_id);
 CREATE INDEX idx_last_seen_at ON registered_devices(last_seen_at DESC);
 
 -- 🟡 Upload Queue Table (pour retry automatique)

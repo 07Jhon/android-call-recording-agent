@@ -1,59 +1,14 @@
-:root {
-  --bg: #eef0f7;
-  --surface: #ffffff;
-  --surface-muted: #f6f7fb;
-  --border: #e3e6f0;
-  --text: #1e2333;
-  --text-muted: #6b7185;
-  --text-faint: #9aa0b4;
-
-  --brand-start: #4338ca;
-  --brand-end: #7c3aed;
-  --accent: #4f46e5;
-  --accent-soft: #eef0ff;
-
-  --status-recording-bg: #fee2e2;
-  --status-recording-fg: #b91c1c;
-  --status-processing-bg: #fef3c7;
-  --status-processing-fg: #b45309;
-  --status-pending_upload-bg: #e2e8f0;
-  --status-pending_upload-fg: #475569;
-  --status-uploading-bg: #dbeafe;
-  --status-uploading-fg: #1d4ed8;
-  --status-uploaded-bg: #d1fae5;
-  --status-uploaded-fg: #047857;
-  --status-upload_failed-bg: #fee2e2;
-  --status-upload_failed-fg: #dc2626;
-  --status-deleted-bg: #f1f1f4;
-  --status-deleted-fg: #71717a;
-
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
-}
-
 * {
   box-sizing: border-box;
-}
-
-html,
-body {
   margin: 0;
   padding: 0;
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  font-feature-settings: 'ss01' on, 'cv01' on;
-}
-
-code,
-.mono {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9edf3 100%);
+  color: #1a1a1a;
+  min-height: 100vh;
 }
 
 a {
@@ -61,107 +16,29 @@ a {
   text-decoration: none;
 }
 
-button {
-  font-family: inherit;
-}
-
-::selection {
-  background: var(--accent);
-  color: white;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
-/* Shared status pill, used by the Dashboard table and the recording details page */
 .status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-block;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
+  text-transform: capitalize;
 }
 
-.status::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
+.status-recording { background: #dbeafe; color: #1e40af; }
+.status-processing { background: #fef3c7; color: #92400e; }
+.status-pending_upload { background: #fef3c7; color: #92400e; }
+.status-uploading { background: #dbeafe; color: #1e40af; }
+.status-uploaded { background: #d1fae5; color: #065f46; }
+.status-upload_failed { background: #fee2e2; color: #991b1b; }
+.status-deleted { background: #f3f4f6; color: #6b7280; }
 
-.status-recording {
-  background: var(--status-recording-bg);
-  color: var(--status-recording-fg);
-}
-.status-recording::before {
-  animation: pulse-dot 1.4s ease-in-out infinite;
-}
-
-.status-processing {
-  background: var(--status-processing-bg);
-  color: var(--status-processing-fg);
-}
-
-.status-pending_upload {
-  background: var(--status-pending_upload-bg);
-  color: var(--status-pending_upload-fg);
-}
-
-.status-uploading {
-  background: var(--status-uploading-bg);
-  color: var(--status-uploading-fg);
-}
-
-.status-uploaded {
-  background: var(--status-uploaded-bg);
-  color: var(--status-uploaded-fg);
-}
-
-.status-upload_failed {
-  background: var(--status-upload_failed-bg);
-  color: var(--status-upload_failed-fg);
-}
-
-.status-deleted {
-  background: var(--status-deleted-bg);
-  color: var(--status-deleted-fg);
-}
-
-@keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.3;
-  }
-}
-
-.loading,
-.error,
-.no-data {
-  padding: 60px 20px;
+.loading, .error, .no-data {
+  padding: 40px;
   text-align: center;
-  color: var(--text-muted);
-  font-size: 0.95rem;
+  color: #6b7280;
 }
 
 .error {
-  color: var(--status-upload_failed-fg);
+  color: #dc2626;
 }

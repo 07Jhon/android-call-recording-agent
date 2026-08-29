@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!--
+      Exclusion explicite des enregistrements audio et de la base locale :
+      ces données sont sensibles (appels privés) et ne doivent jamais
+      transiter par une sauvegarde cloud non chiffrée.
+    -->
+    <exclude domain="file" path="recordings/" />
+    <exclude domain="database" path="call_recording_db" />
+</full-backup-content>

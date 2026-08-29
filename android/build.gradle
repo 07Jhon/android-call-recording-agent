@@ -6,6 +6,7 @@ plugins {
 }
 
 android {
+    namespace 'com.enterprise.callrecorder'
     compileSdk 34
     
     defaultConfig {
