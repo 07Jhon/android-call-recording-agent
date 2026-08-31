@@ -1,58 +1,153 @@
-package com.enterprise.callrecorder.model;
+package com.enterprise.callrecorder.service;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.enterprise.callrecorder.model.CallRecording;
+import com.enterprise.callrecorder.model.CallStatus;
+import com.enterprise.callrecorder.model.CallType;
+import com.enterprise.callrecorder.repository.CallRecordingRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
-@Entity
-@Table(name = "registered_devices")
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CallRecordingService{
+@Service
+@RequiredArgsConstructor
+@Slf4j
+@Transactional
+public class CallRecordingService {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private final CallRecordingRepository callRecordingRepository;
+    private final StorageService storageService;
 
-    @Column(name = "device_id", unique = true, nullable = false)
-    private String deviceId;
+    public CallRecording processUpload(
+            String deviceId,
+            String phoneNumber,
+            CallType callType,
+            Long duration,
+            Long fileSize,
+            MultipartFile file
+    ) throws Exception {
 
-    @Column(name = "device_name")
-    private String deviceName;
+        String originalFileName = file.getOriginalFilename();
 
-    @Column(name = "android_version")
-    private Integer androidVersion;
+        if (originalFileName == null || originalFileName.isBlank()) {
+            originalFileName = "recording";
+        }
 
-    private String manufacturer;
+        String fileName = System.currentTimeMillis() + "_" + originalFileName;
 
-    private String model;
+        String storageKey = storageService.saveFile(
+                file.getBytes(),
+                fileName
+        );
 
-    /**
-     * Token secret utilisé par le device pour s'authentifier (header
-     * Authorization: Bearer <token>). Généré une seule fois à l'enregistrement,
-     * jamais renvoyé en clair après coup — seul un hash pourrait être stocké
-     * pour plus de sécurité, mais on garde le token en clair ici pour la
-     * simplicité (⚠️ acceptable en interne, pas pour de la donnée exposée
-     * publiquement — voir note dans DeviceAuthFilter).
-     */
-    @Column(name = "api_token", unique = true)
-    private String apiToken;
+        CallRecording recording = CallRecording.builder()
+                .deviceId(deviceId)
+                .phoneNumber(phoneNumber)
+                .callType(callType)
+                .startedAt(System.currentTimeMillis() - ((duration != null ? duration : 0) * 1000L))
+                .endedAt(System.currentTimeMillis())
+                .duration(duration)
+                .fileName(fileName)
+                .fileSize(fileSize != null ? fileSize : file.getSize())
+                .storageKey(storageKey)
+                .status(CallStatus.UPLOADED)
+                .uploadAttempts(1)
+                .uploadedAt(LocalDateTime.now())
+                .build();
 
-    @Column(name = "is_recording_supported")
-    private Boolean isRecordingSupported;
+        return callRecordingRepository.save(recording);
+    }
 
-    @Column(name = "is_active")
-    private Boolean isActive;
+    @Transactional(readOnly = true)
+    public Page<CallRecording> getAllRecordings(Pageable pageable) {
+        return callRecordingRepository.findAll(pageable);
+    }
 
-    @Column(name = "last_seen_at")
-    private LocalDateTime lastSeenAt;
+    @Transactional(readOnly = true)
+    public Optional<CallRecording> getRecordingById(Long id) {
+        return callRecordingRepository.findById(id);
+    }
 
-    @Column(name = "registered_at")
-    private LocalDateTime registeredAt;
+    @Transactional(readOnly = true)
+    public Page<CallRecording> getRecordingsByDevice(
+            String deviceId,
+            Pageable pageable
+    ) {
+        return callRecordingRepository.findByDeviceId(deviceId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CallRecording> getRecordingsByPhoneNumber(
+            String phoneNumber,
+            Pageable pageable
+    ) {
+        return callRecordingRepository.findByPhoneNumber(phoneNumber, pageable);
+    }
+
+    public byte[] getFileContent(String storageKey) throws Exception {
+        return storageService.getFile(storageKey);
+    }
+
+    public CallRecording deleteRecording(Long id) {
+        CallRecording recording = callRecordingRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Recording not found: " + id)
+                );
+
+        if (recording.getStorageKey() != null) {
+            storageService.deleteFile(recording.getStorageKey());
+        }
+
+        recording.setStatus(CallStatus.DELETED);
+        recording.setDeletedAt(LocalDateTime.now());
+
+        return callRecordingRepository.save(recording);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        stats.put("total", callRecordingRepository.count());
+        stats.put(
+                "uploaded",
+                callRecordingRepository.countByStatus(CallStatus.UPLOADED)
+        );
+        stats.put(
+                "recording",
+                callRecordingRepository.countByStatus(CallStatus.RECORDING)
+        );
+        stats.put(
+                "processing",
+                callRecordingRepository.countByStatus(CallStatus.PROCESSING)
+        );
+        stats.put(
+                "pendingUpload",
+                callRecordingRepository.countByStatus(CallStatus.PENDING_UPLOAD)
+        );
+        stats.put(
+                "uploading",
+                callRecordingRepository.countByStatus(CallStatus.UPLOADING)
+        );
+        stats.put(
+                "uploadFailed",
+                callRecordingRepository.countByStatus(CallStatus.UPLOAD_FAILED)
+        );
+        stats.put(
+                "deleted",
+                callRecordingRepository.countByStatus(CallStatus.DELETED)
+        );
+
+        return stats;
+    }
 }
